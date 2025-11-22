@@ -81,25 +81,35 @@ const Predict = () => {
     setLoading(true);
     
     try {
-      // Simulate API call - replace with actual backend endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const PREDICT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/predict`;
       
-      // Mock response - replace with actual API call
-      const mockResult: PredictionResult = {
-        potability: Math.random() > 0.5 ? "Safe" : "Unsafe",
-        event_type: ["First Flush", "Industrial Spike", "Dry Weather"][Math.floor(Math.random() * 3)],
-        confidence: 0.85 + Math.random() * 0.15,
-        fractions: {
-          sewage: 0.35 + Math.random() * 0.2,
-          industrial: 0.25 + Math.random() * 0.2,
-          storm: 0.2 + Math.random() * 0.15,
-          groundwater: 0.1 + Math.random() * 0.15,
+      const response = await fetch(PREDICT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      };
-      
-      setResult(mockResult);
+        body: JSON.stringify({
+          ph: data.ph,
+          hardness: data.hardness,
+          solids: data.solids,
+          chloramines: data.chloramines,
+          sulfate: data.sulfate,
+          conductivity: data.conductivity,
+          organic_carbon: data.organic_carbon,
+          trihalomethanes: data.trihalomethanes,
+          turbidity: data.turbidity,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get prediction');
+      }
+
+      const result: PredictionResult = await response.json();
+      setResult(result);
       toast.success("Prediction completed successfully!");
     } catch (error) {
+      console.error('Prediction error:', error);
       toast.error("Failed to get prediction. Please try again.");
     } finally {
       setLoading(false);
