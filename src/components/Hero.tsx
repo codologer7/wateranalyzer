@@ -40,9 +40,15 @@ const Hero = () => {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="bg-background/10 hover:bg-background/20 text-primary-foreground border-primary-foreground/30 backdrop-blur-sm">
-              Learn More
-            </Button>
+            <a 
+              href="https://www.sciencedirect.com/science/article/abs/pii/S0957582025009735" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button size="lg" variant="outline" className="bg-background/10 hover:bg-background/20 text-primary-foreground border-primary-foreground/30 backdrop-blur-sm">
+                Learn More
+              </Button>
+            </a>
           </div>
         </div>
       </div>
