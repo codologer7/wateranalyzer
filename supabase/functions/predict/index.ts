@@ -42,77 +42,24 @@ serve(async (req) => {
 
     console.log('Input array for model:', inputArray);
 
-    // Rule-based prediction using WHO/EPA water quality standards
-    const phScore = ph >= 6.5 && ph <= 8.5 ? 1 : 0;
-    const hardnessScore = hardness <= 300 ? 1 : 0;
-    const solidsScore = solids <= 1000 ? 1 : 0;
-    const chloraminesScore = chloramines <= 4 ? 1 : 0;
-    const sulfateScore = sulfate <= 250 ? 1 : 0;
-    const conductivityScore = conductivity <= 800 ? 1 : 0;
-    const organicCarbonScore = organic_carbon <= 2 ? 1 : 0;
-    const trihalomethanesScore = trihalomethanes <= 80 ? 1 : 0;
-    const turbidityScore = turbidity <= 5 ? 1 : 0;
-
-    const totalScore = phScore + hardnessScore + solidsScore + chloraminesScore + 
-                       sulfateScore + conductivityScore + organicCarbonScore + 
-                       trihalomethanesScore + turbidityScore;
-
-    const potability = totalScore >= 7 ? "Safe" : "Unsafe";
-    const confidence = (totalScore / 9) * 0.3 + 0.7;
-
-    // Determine event type and fractions based on parameter analysis
-    let event_type = "Dry Weather";
-    let fractions = {
-      sewage: 0.25,
-      industrial: 0.25,
-      storm: 0.25,
-      groundwater: 0.25,
+    // Mock prediction response
+    // Replace this with actual ONNX model inference
+    const mockResult = {
+      potability: Math.random() > 0.5 ? "Safe" : "Unsafe",
+      event_type: ["First Flush", "Industrial Spike", "Dry Weather"][Math.floor(Math.random() * 3)],
+      confidence: 0.85 + Math.random() * 0.15,
+      fractions: {
+        sewage: 0.35 + Math.random() * 0.2,
+        industrial: 0.25 + Math.random() * 0.2,
+        storm: 0.2 + Math.random() * 0.15,
+        groundwater: 0.1 + Math.random() * 0.15,
+      },
     };
 
-    // High organic carbon and chloramines suggest sewage influence
-    if (organic_carbon > 5 || chloramines > 3) {
-      event_type = "First Flush";
-      fractions = {
-        sewage: 0.45,
-        industrial: 0.20,
-        storm: 0.25,
-        groundwater: 0.10,
-      };
-    }
-
-    // High conductivity and solids suggest industrial influence
-    if (conductivity > 600 || solids > 8000 || sulfate > 200) {
-      event_type = "Industrial Spike";
-      fractions = {
-        sewage: 0.20,
-        industrial: 0.50,
-        storm: 0.15,
-        groundwater: 0.15,
-      };
-    }
-
-    // High turbidity suggests storm water
-    if (turbidity > 4) {
-      event_type = "First Flush";
-      fractions = {
-        sewage: 0.25,
-        industrial: 0.15,
-        storm: 0.45,
-        groundwater: 0.15,
-      };
-    }
-
-    const result = {
-      potability,
-      event_type,
-      confidence: Math.min(confidence, 0.99),
-      fractions,
-    };
-
-    console.log('Prediction result:', result);
+    console.log('Prediction result:', mockResult);
 
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify(mockResult),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
