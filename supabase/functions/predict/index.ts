@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,13 +9,28 @@ const corsHeaders = {
 // @ts-ignore - ONNX Runtime Web types
 import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort.min.js";
 
-// Load ONNX model at module level (before serve) - this is allowed
-const modelPath = new URL('./rf_model.onnx', import.meta.url).pathname;
-const modelData = await Deno.readFile(modelPath);
-// @ts-ignore - ONNX Runtime types
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+console.log('Loading ONNX model from storage...');
+
+// Load ONNX model from Supabase Storage
+const { data: modelFile, error: storageError } = await supabase.storage
+  .from('models')
+  .download('rf_model.onnx');
+
+if (storageError || !modelFile) {
+  console.error('Failed to load model from storage:', storageError);
+  throw new Error('Model file not found in storage. Please upload rf_model.onnx to the models bucket.');
+}
+
+const modelData = new Uint8Array(await modelFile.arrayBuffer());
+// @ts-ignore - ONNX Runtime types  
 const session = await ort.InferenceSession.create(modelData);
 
-console.log('ONNX model loaded successfully at initialization');
+console.log('ONNX model loaded successfully from storage');
 
 serve(async (req) => {
   // Handle CORS preflight requests
