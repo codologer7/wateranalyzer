@@ -9,7 +9,7 @@ const corsHeaders = {
 import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort.min.js";
 
 // Load ONNX model at module level (before serve) - this is allowed
-const modelPath = new URL('../_shared/rf_model.onnx', import.meta.url).pathname;
+const modelPath = new URL('./rf_model.onnx', import.meta.url).pathname;
 const modelData = await Deno.readFile(modelPath);
 // @ts-ignore - ONNX Runtime types
 const session = await ort.InferenceSession.create(modelData);
