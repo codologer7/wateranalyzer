@@ -42,8 +42,8 @@ serve(async (req) => {
 
     console.log('Input array for model:', inputArray);
 
-    // Load ONNX model
-    const modelPath = new URL('./_shared/rf_model.onnx', import.meta.url).pathname;
+    // Load ONNX model from _shared directory (one level up from function)
+    const modelPath = new URL('../_shared/rf_model.onnx', import.meta.url).pathname;
     const modelData = await Deno.readFile(modelPath);
     
     // @ts-ignore - ONNX Runtime types
