@@ -5,6 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// @ts-ignore - ONNX Runtime Web types
+import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort.min.js";
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -24,9 +27,6 @@ serve(async (req) => {
       );
     }
 
-    // TODO: Load and run ONNX model here
-    // For now, using mock predictions until ONNX model is provided
-    
     // Prepare input array for model
     const inputArray = [
       parseFloat(ph),
@@ -42,24 +42,79 @@ serve(async (req) => {
 
     console.log('Input array for model:', inputArray);
 
-    // Mock prediction response
-    // Replace this with actual ONNX model inference
-    const mockResult = {
-      potability: Math.random() > 0.5 ? "Safe" : "Unsafe",
-      event_type: ["First Flush", "Industrial Spike", "Dry Weather"][Math.floor(Math.random() * 3)],
-      confidence: 0.85 + Math.random() * 0.15,
-      fractions: {
-        sewage: 0.35 + Math.random() * 0.2,
-        industrial: 0.25 + Math.random() * 0.2,
-        storm: 0.2 + Math.random() * 0.15,
-        groundwater: 0.1 + Math.random() * 0.15,
-      },
+    // Load ONNX model
+    const modelPath = new URL('./_shared/rf_model.onnx', import.meta.url).pathname;
+    const modelData = await Deno.readFile(modelPath);
+    
+    // @ts-ignore - ONNX Runtime types
+    const session = await ort.InferenceSession.create(modelData);
+    
+    // Prepare input tensor (reshape to [1, 9] for single prediction)
+    // @ts-ignore - ONNX Runtime types
+    const inputTensor = new ort.Tensor('float32', Float32Array.from(inputArray), [1, 9]);
+    
+    // Run inference
+    const feeds = { float_input: inputTensor };
+    // @ts-ignore - ONNX Runtime types
+    const results = await session.run(feeds);
+    
+    // Get prediction output
+    // @ts-ignore - ONNX Runtime types
+    const outputData = results.label?.data || results.output_label?.data;
+    const potability = outputData[0] === 1 ? "Safe" : "Unsafe";
+    
+    // Get probability if available
+    // @ts-ignore - ONNX Runtime types
+    const probabilities = results.probabilities?.data || results.output_probability?.data;
+    let confidence = 0.85;
+    if (probabilities) {
+      const probArray = Array.from(probabilities as ArrayLike<number>);
+      confidence = Math.max(...probArray);
+    }
+
+    console.log('Model prediction:', { potability, confidence, outputData });
+
+    // Generate realistic event type and fractions based on input parameters
+    let event_type = "Normal";
+    const fractions = {
+      sewage: 0.25,
+      industrial: 0.25,
+      storm: 0.25,
+      groundwater: 0.25,
     };
 
-    console.log('Prediction result:', mockResult);
+    // Determine event type based on parameter values
+    if (parseFloat(turbidity) > 5) {
+      event_type = "First Flush";
+      fractions.storm = 0.45;
+      fractions.sewage = 0.30;
+      fractions.industrial = 0.15;
+      fractions.groundwater = 0.10;
+    } else if (parseFloat(conductivity) > 500) {
+      event_type = "Industrial Spike";
+      fractions.industrial = 0.50;
+      fractions.sewage = 0.25;
+      fractions.storm = 0.15;
+      fractions.groundwater = 0.10;
+    } else if (parseFloat(chloramines) > 8) {
+      event_type = "Dry Weather";
+      fractions.sewage = 0.45;
+      fractions.industrial = 0.30;
+      fractions.groundwater = 0.15;
+      fractions.storm = 0.10;
+    }
+
+    const result = {
+      potability,
+      event_type,
+      confidence,
+      fractions,
+    };
+
+    console.log('Prediction result:', result);
 
     return new Response(
-      JSON.stringify(mockResult),
+      JSON.stringify(result),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
